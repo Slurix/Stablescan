@@ -497,16 +497,20 @@ async function buildHistoricalChart(topCoins) {
     top4.map(c => fetch(`${DL}/stablecoin/${c.id}`).then(r => r.json()).catch(() => null))
   );
 
-  // Use last 730 data points (~2 years) from total history
-  const slice = totalHist.slice(-730);
+  // Use all available data points (full history from DeFiLlama)
+  const slice = totalHist;
   const labels = slice.map(p => {
     const d = new Date(p.date * 1000);
     return `${d.toLocaleString('en-US',{month:'short'})} '${String(d.getFullYear()).slice(2)}`;
   });
-  // Thin to monthly labels
+  // Thin labels: quarterly boundaries to avoid crowding over full history
+  const _qMonths = new Set([0, 3, 6, 9]); // Jan, Apr, Jul, Oct
   const thinLabels = labels.map((l, i) => {
-    const prev = i > 0 ? labels[i-1] : null;
-    return (!prev || l.split(' ')[0] !== prev.split(' ')[0]) ? l : '';
+    if (i === 0) return l;
+    const prev = labels[i - 1];
+    if (l === prev) return '';
+    const d = new Date(slice[i].date * 1000);
+    return _qMonths.has(d.getMonth()) && l !== prev ? l : '';
   });
 
   const totalData = slice.map(p => {
