@@ -60,7 +60,7 @@
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
 
     /* HERO */
-    .hero{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;margin-top:16px;}
+    .hero{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:16px 0;}
     .hc{background:var(--panel);padding:16px 20px;position:relative;}
     .hc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
     .hc.g::after{background:var(--green);} .hc.a::after{background:var(--amber);}
@@ -105,6 +105,7 @@
     .pos{color:var(--green);} .neg{color:var(--red);}
 
     /* DONUT */
+    .grid-main .panel:last-child .pbd{display:flex;flex-direction:column;justify-content:space-between;gap:16px;}
     .dw{display:flex;align-items:center;gap:20px;}
     .da{position:relative;flex-shrink:0;}
     .dc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
@@ -146,9 +147,9 @@
     .mcv{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--green);margin-bottom:2px;}
     .mcs{font-size:9px;color:var(--text-secondary);}
 
-    /* BOTTOM ROW CAPS */
-    .grid-3 .panel{max-height:440px;overflow:hidden;display:flex;flex-direction:column;}
-    .grid-3 .panel .pbd{flex:1;overflow:hidden;}
+    /* BOTTOM ROW PANELS — equal height, no clipping */
+    .grid-3 .panel{display:flex;flex-direction:column;}
+    .grid-3 .panel .pbd{flex:1;display:flex;flex-direction:column;justify-content:center;}
 
     footer{border-top:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:20px;}
 
@@ -178,7 +179,7 @@
       </div>
       <span class="lt">STABLE<span>SCAN</span></span>
     </div>
-    <span class="ht">100% Live · No API Key · DeFiLlama + CoinCap</span>
+    <span class="ht">100% Live · No API Key · DeFiLlama + CoinGecko</span>
   </div>
   <div class="hr">
     <div class="lb"><div class="ld"></div>LIVE</div>
@@ -190,7 +191,7 @@
   <div id="err">⚠ Could not load data. Check your connection and refresh.</div>
 
   <div class="dsb">
-    <span>Sources: <b>DeFiLlama Stablecoins API</b> (market caps, supply, history) + <b>CoinCap API</b> (peg price chart) — no API key required</span>
+    <span>Sources: <b>DeFiLlama Stablecoins API</b> (market caps, supply, history) + <b>CoinGecko API</b> (peg price chart) — no API key required</span>
     <button class="rbtn" onclick="location.reload()">↺ REFRESH</button>
   </div>
 
@@ -263,7 +264,7 @@
   <!-- ROW 2: Peg Stability + Supply Change Ranking + 30d Change -->
   <div class="grid-3">
     <div class="panel">
-      <div class="ph"><span class="pt">30-Day Peg Stability</span><span class="pb">USDT &amp; USDC vs $1.00 · CoinCap</span></div>
+      <div class="ph"><span class="pt">30-Day Peg Stability</span><span class="pb">USDT &amp; USDC vs $1.00 · CoinGecko</span></div>
       <div class="pbd">
         <div class="cw160"><canvas id="pegc"></canvas></div>
         <div style="margin-top:10px;font-size:10px;color:var(--text-dim);line-height:1.5">Live 30-day price history. Deviation from $1.00 signals reserve or market stress.</div>
@@ -301,14 +302,14 @@
 </div>
 
 <footer>
-  <span>Market cap &amp; supply data: <b style="color:var(--text-secondary)">DeFiLlama Stablecoins API</b> (stablecoins.llama.fi) · Peg price chart: <b style="color:var(--text-secondary)">CoinCap API</b> (api.coincap.io) · No API key required</span>
+  <span>Market cap &amp; supply data: <b style="color:var(--text-secondary)">DeFiLlama Stablecoins API</b> (stablecoins.llama.fi) · Peg price chart: <b style="color:var(--text-secondary)">CoinGecko API</b> (api.coingecko.com) · No API key required</span>
   <span id="fup">—</span>
 </footer>
 
 <script>
 // ── SOURCES ──────────────────────────────────────────────────────────
 const DL  = 'https://stablecoins.llama.fi';
-const CC  = 'https://api.coincap.io/v2';
+const CG  = 'https://api.coingecko.com/api/v3';
 
 // Target stablecoins by symbol (DeFiLlama uses symbol matching)
 const TARGETS = ['USDT','USDC','USDe','USDS','FDUSD','PYUSD','RLUSD','USDD','DAI','FRAX','TUSD','BUSD'];
@@ -393,18 +394,19 @@ function filterCoins(all) {
 
 // ── HERO ──────────────────────────────────────────────────────────────
 function buildHero(coins, allCoins) {
-  const total = coins.reduce((s, c) => s + getCirc(c), 0);
+  // True market total across every stablecoin DeFiLlama tracks, not just the 8 shown
+  const marketTotal = allCoins.reduce((s, c) => s + getCirc(c), 0);
   const usdt  = coins.find(c => c.symbol?.toUpperCase() === 'USDT');
   const usdc  = coins.find(c => c.symbol?.toUpperCase() === 'USDC');
-  $('h-mc').textContent     = fmtB(total);
-  $('h-mc-sub').textContent = coins.length + ' top coins shown';
+  $('h-mc').textContent     = fmtB(marketTotal);
+  $('h-mc-sub').textContent = 'Across ' + allCoins.length + ' tracked stablecoins';
   $('h-usdt').textContent   = fmtB(getCirc(usdt));
   const u24 = pctChange(getCirc(usdt), getPrev(usdt, '1d'));
   $('h-usdt-sub').textContent = '24h: ' + fmtPct(u24);
   $('h-usdc').textContent   = fmtB(getCirc(usdc));
   const c24 = pctChange(getCirc(usdc), getPrev(usdc, '1d'));
   $('h-usdc-sub').textContent = '24h: ' + fmtPct(c24);
-  $('h-dom').textContent    = usdt ? (getCirc(usdt) / total * 100).toFixed(1) + '%' : '—';
+  $('h-dom').textContent    = (usdt && marketTotal) ? (getCirc(usdt) / marketTotal * 100).toFixed(1) + '%' : '—';
   $('h-count').textContent  = allCoins.length;
   $('h-count-sub').textContent = 'across all chains';
 }
@@ -457,8 +459,8 @@ function buildDonut(coins) {
   // fiat vs crypto split
   const fiatMc  = coins.filter(c => pegType(c.pegMechanism) === 'fiat').reduce((s, c) => s + getCirc(c), 0);
   const cryptoMc = total - fiatMc;
-  const fPct = (fiatMc / total * 100).toFixed(0);
-  const cPct = (cryptoMc / total * 100).toFixed(0);
+  const fPct = Math.round(fiatMc / total * 100);
+  const cPct = 100 - fPct;
   $('cdbar').innerHTML = `<div style="width:${fPct}%;background:var(--blue);border-radius:5px 0 0 5px"></div><div style="flex:1;background:var(--purple)"></div>`;
   $('cd-c').textContent = `■ Fiat-backed ${fPct}%`;
   $('cd-d').textContent = `■ Crypto-backed ${cPct}%`;
@@ -593,27 +595,37 @@ async function buildHistoricalChart(topCoins) {
   ).join('');
 }
 
-// ── PEG CHART (CoinCap) ────────────────────────────────────────────────
+// ── PEG CHART (CoinGecko, keyless) ─────────────────────────────────────
 async function buildPegChart() {
-  const now   = Date.now();
-  const start = now - 30 * 24 * 60 * 60 * 1000;
-  const ids   = ['tether', 'usd-coin'];
-  const colors = ['#26a17b', '#2775ca'];
+  const ids     = ['tether', 'usd-coin'];
+  const colors  = ['#26a17b', '#2775ca'];
   const tickers = ['USDT', 'USDC'];
 
+  // CoinGecko free tier, no key required. Returns { prices: [[ts_ms, price], ...] }
   const results = await Promise.all(
-    ids.map(id => fetch(`${CC}/assets/${id}/history?interval=d1&start=${start}&end=${now}`).then(r => r.json()).catch(() => null))
+    ids.map(id =>
+      fetch(`${CG}/coins/${id}/market_chart?vs_currency=usd&days=30&interval=daily`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+    )
   );
 
-  const data0 = results[0]?.data || [];
-  if (!data0.length) return;
+  const series0 = results[0]?.prices || [];
+  if (!series0.length) {
+    // Graceful, visible fallback instead of a silently blank panel
+    $('pegc').closest('.pbd').innerHTML =
+      `<div style="height:160px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);line-height:1.6;padding:0 12px">
+        Peg price history temporarily unavailable<br>(CoinGecko rate limit) — try refresh.
+      </div>`;
+    return;
+  }
 
-  const labels = data0.map(p => { const d = new Date(p.time); return `${d.getMonth()+1}/${d.getDate()}`; });
+  const labels = series0.map(p => { const d = new Date(p[0]); return `${d.getMonth()+1}/${d.getDate()}`; });
   const ctx = $('pegc').getContext('2d');
   if (pegC) pegC.destroy();
 
   const datasets = results.map((r, i) => {
-    const prices = (r?.data || []).map(p => parseFloat(p.priceUsd).toFixed(5));
+    const prices = (r?.prices || []).map(p => p[1].toFixed(5));
     const grad = ctx.createLinearGradient(0, 0, 0, 160);
     grad.addColorStop(0, colors[i] + '33');
     grad.addColorStop(1, 'transparent');
