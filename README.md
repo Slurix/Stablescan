@@ -1,1 +1,1 @@
-https://slurix.github.io/StableScan/
+https://slurix.github.io/Stablescan/
